@@ -1,0 +1,100 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <curl/curl.h>
+#include <nlohmann/json.hpp>
+
+using namespace std;
+using json = nlohmann::json;
+
+// Define the WeatherVariable class
+class WeatherVariable {
+public:
+    double temperature;
+    double wind_speed;
+
+    WeatherVariable(double temperature = 0.0, double wind_speed = 0.0)
+        : temperature(temperature), wind_speed(wind_speed) {}
+};
+
+// Define the Location class
+class Location {
+public:
+    string name;
+    double latitude;
+    double longitude;
+
+    Location(const string& name, double latitude, double longitude)
+        : name(name), latitude(latitude), longitude(longitude) {}
+};
+
+// Fetch weather data using CURL
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+    ((string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+// Define the WeatherForecastingSystem class
+class WeatherForecastingSystem {
+private:
+    string api_url;
+
+public:
+    WeatherForecastingSystem(const string& api_url) : api_url(api_url) {}
+
+    string fetch_weather(double latitude, double longitude) {
+        CURL* curl;
+        CURLcode res;
+        string readBuffer;
+
+        curl = curl_easy_init();
+        if (curl) {
+            string url = api_url + "?latitude=" + to_string(latitude) + "&longitude=" + to_string(longitude);
+            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+        }
+        return readBuffer;
+    }
+};
+
+// Display weather data
+void display_weather(const string& data) {
+    auto json_data = json::parse(data);
+    cout << "Temperature: " << json_data["temperature"] << "°C" << endl;
+    cout << "Wind Speed: " << json_data["wind_speed"] << " km/h" << endl;
+}
+
+// Export weather data to CSV
+void export_to_csv(const string& data, const string& filename) {
+    ofstream file(filename);
+    file << "temperature,wind_speed\n";
+    auto json_data = json::parse(data);
+    file << json_data["temperature"] << "," << json_data["wind_speed"] << "\n";
+    file.close();
+}
+
+// Export weather data to JSON
+void export_to_json(const string& data, const string& filename) {
+    ofstream file(filename);
+    file << data;
+    file.close();
+}
+
+int main() {
+    // Example usage
+    Location peshawar("Peshawar", 34.0151, 71.5249);
+    WeatherForecastingSystem weather_system("https://api.open-meteo.com/v1/forecast");
+
+    string weather_data = weather_system.fetch_weather(peshawar.latitude, peshawar.longitude);
+    display_weather(weather_data);
+
+    // Export to CSV and JSON
+    export_to_csv(weather_data, "weather_data.csv");
+    export_to_json(weather_data, "weather_data.json");
+
+    return 0;
+}
