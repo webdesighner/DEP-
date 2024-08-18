@@ -1,0 +1,123 @@
+#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+// Contact class to store contact details
+class Contact {
+private:
+    string name;
+    string phoneNumber;
+
+public:
+    // Constructor
+    Contact(string n, string p) : name(n), phoneNumber(p) {}
+
+    // Getters
+    string getName() {
+        return name;
+    }
+
+    string getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    // Setters
+    void setName(string n) {
+        name = n;
+    }
+
+    void setPhoneNumber(string p) {
+        phoneNumber = p;
+    }
+
+    // Display contact
+    void displayContact() {
+        cout << "Name: " << name << ", Phone Number: " << phoneNumber << endl;
+    }
+};
+
+// Function to add a contact
+void addContact(vector<Contact>& contacts) {
+    string name, phoneNumber;
+
+    cout << "Enter Name: ";
+    cin.ignore();
+    getline(cin, name);
+
+    cout << "Enter Phone Number: ";
+    getline(cin, phoneNumber);
+
+    Contact newContact(name, phoneNumber);
+    contacts.push_back(newContact);
+
+    cout << "Contact added successfully!" << endl;
+}
+
+// Function to view all contacts
+void viewContacts(const vector<Contact>& contacts) {
+    if (contacts.empty()) {
+        cout << "No contacts to display." << endl;
+    } else {
+        for (size_t i = 0; i < contacts.size(); i++) {
+            cout << i + 1 << ". ";
+            contacts[i].displayContact();
+        }
+    }
+}
+
+// Function to delete a contact
+void deleteContact(vector<Contact>& contacts) {
+    if (contacts.empty()) {
+        cout << "No contacts to delete." << endl;
+    } else {
+        int index;
+        viewContacts(contacts);
+
+        cout << "Enter the number of the contact to delete: ";
+        cin >> index;
+
+        if (index < 1 || index > contacts.size()) {
+            cout << "Invalid index!" << endl;
+        } else {
+            contacts.erase(contacts.begin() + index - 1);
+            cout << "Contact deleted successfully!" << endl;
+        }
+    }
+}
+
+// Main function
+int main() {
+    vector<Contact> contacts;
+    int choice;
+
+    do {
+        cout << "\nContact Management System\n";
+        cout << "1. Add Contact\n";
+        cout << "2. View Contacts\n";
+        cout << "3. Delete Contact\n";
+        cout << "4. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+        case 1:
+            addContact(contacts);
+            break;
+        case 2:
+            viewContacts(contacts);
+            break;
+        case 3:
+            deleteContact(contacts);
+            break;
+        case 4:
+            cout << "Exiting the program." << endl;
+            break;
+        default:
+            cout << "Invalid choice! Please try again." << endl;
+        }
+    } while (choice != 4);
+
+    return 0;
+}
