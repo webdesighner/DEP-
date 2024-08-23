@@ -1,0 +1,88 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+using namespace std;
+
+// Function to compress using Run-Length Encoding
+string compressRLE(const string& input) {
+    string compressed = "";
+    int count = 1;
+
+    for (size_t i = 0; i < input.length(); ++i) {
+        if (i + 1 < input.length() && input[i] == input[i + 1]) {
+            count++;
+        } else {
+            compressed += input[i];
+            compressed += to_string(count);
+            count = 1;
+        }
+    }
+
+    return compressed;
+}
+
+// Function to decompress using Run-Length Encoding
+string decompressRLE(const string& input) {
+    string decompressed = "";
+    
+    for (size_t i = 0; i < input.length(); ++i) {
+        char character = input[i];
+        string countStr = "";
+        while (isdigit(input[i + 1])) {
+            countStr += input[++i];
+        }
+        int count = stoi(countStr);
+        decompressed.append(count, character);
+    }
+
+    return decompressed;
+}
+
+// Function to read file content
+string readFile(const string& filename) {
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error: Could not open the file!" << endl;
+        return "";
+    }
+    string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+    file.close();
+    return content;
+}
+
+// Function to write content to file
+void writeFile(const string& filename, const string& content) {
+    ofstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error: Could not write to the file!" << endl;
+        return;
+    }
+    file << content;
+    file.close();
+}
+
+int main() {
+    string inputFile = "input.txt";
+    string compressedFile = "compressed.txt";
+    string decompressedFile = "decompressed.txt";
+
+    // Read the input file
+    string content = readFile(inputFile);
+
+    if (content.empty()) {
+        cout << "Input file is empty or cannot be read." << endl;
+        return 1;
+    }
+
+    // Compress the content
+    string compressedContent = compressRLE(content);
+    writeFile(compressedFile, compressedContent);
+    cout << "File compressed successfully. Compressed content: " << compressedContent << endl;
+
+    // Decompress the content
+    string decompressedContent = decompressRLE(compressedContent);
+    writeFile(decompressedFile, decompressedContent);
+    cout << "File decompressed successfully. Decompressed content: " << decompressedContent << endl;
+
+    return 0;
+}
