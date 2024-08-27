@@ -1,0 +1,105 @@
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+using namespace std;
+
+// Global variables for the server
+const int PORT = 8080;
+const string ROOT_DIR = "/path/to/root/directory";
+
+// Function to handle client requests
+void handle_client(int client_socket) {
+  char buffer[1024];
+  int bytes_received;
+
+  // Receive request from the client
+  bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+  if (bytes_received < 0) {
+    cerr << "Error receiving request from client." << endl;
+    close(client_socket);
+    return;
+  }
+
+  // Parse the request
+  string request(buffer, bytes_received);
+  string method, path, protocol;
+  istringstream iss(request);
+  iss >> method >> path >> protocol;
+
+  // Construct the file path
+  string file_path = ROOT_DIR + path;
+
+  // Send the requested file to the client
+  ifstream file(file_path);
+  if (file.is_open()) {
+    string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+    string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + content;
+    send(client_socket, response.c_str(), response.size(), 0);
+  } else {
+    string error_message = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
+    send(client_socket, error_message.c_str(), error_message.size(), 0);
+  }
+
+  // Close the client socket
+  close(client_socket);
+}
+
+int main() {
+  // Create a socket
+  int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+  if (server_socket < 0) {
+    cerr << "Error creating socket." << endl;
+    return 1;
+  }
+
+  // Set the address information
+  sockaddr_in server_address;
+  server_address.sin_family = AF_INET;
+  server_address.sin_addr.s_addr = INADDR_ANY;
+  server_address.sin_port = htons(PORT);
+
+  // Bind the socket to the address
+  if (bind(server_socket, (sockaddr*)&server_address, sizeof(server_address)) < 0) {
+    cerr << "Error binding socket." << endl;
+    close(server_socket);
+    return 1;
+  }
+
+  // Listen for incoming connections
+  if (listen(server_socket, 5) < 0) {
+    cerr << "Error listening on socket." << endl;
+    close(server_socket);
+    return 1;
+  }
+
+  // Main server loop
+  while (true) {
+    // Accept a connection from a client
+    sockaddr_in client_address;
+    socklen_t client_address_size = sizeof(client_address);
+    int client_socket = accept(server_socket, (sockaddr*)&client_address, &client_address_size);
+    if (client_socket < 0) {
+      cerr << "Error accepting connection." << endl;
+      continue;
+    }
+
+    // Create a new thread to handle the client request
+    thread client_thread(handle_client, client_socket);
+    client_thread.detach();
+  }
+
+  // Close the server socket
+  close(server_socket);
+
+  return 0;
+}
